@@ -2592,7 +2592,6 @@ var EditorViewModel = (function() {
         }
 
         getCoordinator();
-
       }
     };
 
