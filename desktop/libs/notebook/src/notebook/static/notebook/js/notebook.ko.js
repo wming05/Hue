@@ -587,6 +587,40 @@ var EditorViewModel = (function() {
       });
     }
     self.variables = ko.mapping.fromJS(typeof snippet.variables != "undefined" && snippet.variables != null ? snippet.variables : []);
+    self.onVariableKeyPress = function (context, data, e) {
+      var userAgent = ace.require('ace/lib/useragent');
+      var key1 = !userAgent.isMac || !userAgent.isOpera || 'KeyboardEvent' in window ? (function(e) {
+        return 0 | (e.ctrlKey ? 1 : 0) | (e.altKey ? 2 : 0) | (e.shiftKey ? 4 : 0) | (e.metaKey ? 8 : 0)
+      })(e) : (function(e) {
+        return 0 | (e.metaKey ? 1 : 0) | (e.altKey ? 2 : 0) | (e.shiftKey ? 4 : 0) | (e.ctrlKey ? 8 : 0)
+      })(e);
+      if (key1) {
+        var keys = ace.require('ace/lib/keys');
+        var key2Text = (e.key || '').toLowerCase();
+        var key2Code = keys[key2Text];
+        key2Text = keys.keyCodeToString(key2Code);
+        //We cannot directly use callKeyboardHandlers, because we need to filter the commands
+        //context.ace().keyBinding.$callKeyboardHandlers(key1, key2Text, key2Code, e);
+        (function callKeyboardHandlers (key1, key2Text, key2Code, e){
+          var keyBinding = context.ace().keyBinding;
+          var oCommandFilter = {'save': true, 'execute': true};
+          var oCommands = keyBinding.$editor.commands;
+          var result = false;
+          var userAgent = ace.require("ace/lib/event")
+          for (var a = keyBinding.$handlers.length; a--; ) {
+            var keyBoard = keyBinding.$handlers[a].handleKeyboard(keyBinding.$data, key1, key2Text, key2Code, e);
+            if (!keyBoard || !keyBoard.command || !oCommandFilter[keyBoard.command.name] )
+              continue;
+            keyBoard.command == "null" ? result = true : result = oCommands.exec(keyBoard.command, keyBinding.$editor, keyBoard.args, e),
+            result && e && key1 != -1 && keyBoard.passEvent != 1 && keyBoard.command.passEvent != 1 && userAgent.stopEvent(e);
+            if (result)
+              break
+          }
+        })(key1, key2Text, key2Code, e);
+      }
+      return true;
+    }
+    self.onVariableKeyPressState = {};
     self.variables.subscribe(function (newValue) {
       $(document).trigger("updateResultHeaders", self);
     });
