@@ -614,52 +614,55 @@ var EditorViewModel = (function() {
 
       return params;
     };
-    function getJSONLength (index) {
-      //all bracket pairs
-      if (this.charAt(index) != "{") return 0;
-      var nOpenBracket = 1, start = index, i;
-      for (i = index + 1; i < this.length; i++) {
-        var currentChar = this.charAt(i);
-        if (currentChar === "{") nOpenBracket++;
-        else if (currentChar === "}") nOpenBracket--;
-        if (nOpenBracket <= 0) break;
-      }
-      return i - start + 1;
-    };
     self.variableNames = ko.computed(function () {
-      var match, matches = {};
+      var match, matches = {}, matchList;
       if (self.type() == 'pig') {
         matches = self.getPigParameters();
       } else {
-        var re = /\${(\w*\=?[^}]*)/g;
+        var re = /(?:^|\W)\${(\w*)\=?([^}]*)}/g;
+        var reComment = /(^\s*--.*)|(\/\*[\s\S]*?\*\/)/gm;
+        var reList = /(?!\s*$)\s*(?:(?:([^,|()\\]*)\(\s*([^,|()\\]*)\)(?:\\[\S\s][^,|()\\]*)?)|([^,|\\]*(?:\\[\S\s][^,|\\]*)*))\s*(?:,|\||$)/g
         var statement = self.statement_raw();
+        var matchComment = reComment.exec(statement);
+        //if re is n & reComment is m
+        //finding variables is O(n+m)
         while (match = re.exec(statement)) {
-          var equalIndex = match[0].indexOf("=");
-          var splittedName = match[1].split("=");
-          if (equalIndex > -1) {
-            var variableValueIndex = match.index + equalIndex + 1;
-            var jsonLength = getJSONLength.call(statement, variableValueIndex);
-            if (jsonLength > 0) {
-              try {
-                matches[splittedName[0]] = JSON.parse(statement.substring(variableValueIndex, variableValueIndex + jsonLength));
-                matches[splittedName[0]].placeholder = matches[splittedName[0]].placeholder || "";
-                matches[splittedName[0]].type = matches[splittedName[0]].type || "text";
-              } catch (e) {
-                matches[splittedName[0]] = "";
+          while (matchComment && match.index > matchComment.index + matchComment[0].length) { //comments before our match
+            matchComment = reComment.exec(statement);
+          }
+          var isWithinComment = matchComment && match.index >= matchComment.index;
+          if (isWithinComment) continue;
+
+          //If 1 match, text value
+          //If multiple matches, list value
+          var value = {type:"text"};
+          while (matchList = reList.exec(match[2])) {
+            var option = {text:matchList[2] || matchList[3], value:matchList[3] || matchList[1]};
+            option.text = option.text && option.text.trim();
+            option.value = option.value && option.value.trim();
+
+            if (value.placeholder || matchList[2]){
+              if (!value.options) {
+                value.options = [];
+                value.type = "select";
               }
-            } else {
-              matches[splittedName[0]] = splittedName[1];
+              value.options.push(option);
             }
+            if (!value.placeholder) value.placeholder = option.value;
           }
-          else {
-            matches[match[1]] = splittedName[1];
+          var isPlaceholderInOptions = !value.options || value.options.some(function (current){
+            return current.value == value.placeholder;
+          });
+          if (!isPlaceholderInOptions) {
+            value.options.push({text: value.placeholder, value: value.placeholder});
           }
+          matches[match[1]] = matches[match[1]] || value;
         }
       }
-      return Object.keys(matches).map(function (match) {
-        var isMatchObject = typeof matches[match] === "object";
-        var meta = isMatchObject ? matches[match] : {type: "text", placeholder: matches[match]};
-        return {name: match, meta: meta};
+      return $.map(matches, function (match, key) {
+        var isMatchObject = typeof matches[key] === "object";
+        var meta = isMatchObject ? matches[key] : {type: "text", placeholder: matches[key]};
+        return {name: key, meta: meta};
       });
     });
     self.variableValues = {};
@@ -669,12 +672,12 @@ var EditorViewModel = (function() {
       var needsMore = diffLengthVariables < 0;
       var needsLess = diffLengthVariables > 0;
       self.variableValues = self.variables().reduce(function (variableValues, variable) {
-        variableValues[variable.name()] = variable.value();
+        variableValues[variable.name()] = {value:variable.value()};
         return variableValues;
       }, self.variableValues);
       if (needsMore) {
         for (var i = 0, length = Math.abs(diffLengthVariables); i < length; i++) {
-          self.variables.push(ko.mapping.fromJS({ "name": "", "value": "", "meta": {type: "text", placeholder: ""}}));
+          self.variables.push(ko.mapping.fromJS({ name: "", value: "", meta: {type: "text", placeholder: ""}}));
         }
       } else if (needsLess) {
         self.variables.splice(self.variables().length - diffLengthVariables, diffLengthVariables);
@@ -682,27 +685,23 @@ var EditorViewModel = (function() {
       newVal.forEach(function (item, index) {
         var variable = self.variables()[index];
         variable.name(item.name);
+        variable.value(self.variableValues[item.name] ? self.variableValues[item.name].value : (!needsMore && variable.value()) || "");
         variable.meta = ko.mapping.fromJS(item.meta, {}, variable.meta);
-        variable.value(self.variableValues[item.name] || (!needsMore && variable.value()) || "");
       });
     });
     self.statement = ko.computed(function () {
       var statement = self.isSqlDialect() ? (self.selectedStatement() ? self.selectedStatement() : (self.positionStatement() !== null ? self.positionStatement().statement : self.statement_raw())) : self.statement_raw();
-      $.each(self.variables(), function (index, variable) {
-        function replaceVariable(name, value) {
-          var re = RegExp("\\$" + (self.hasCurlyBracketParameters() ? "{" : "") + name + "(=[^}]*)?" + (self.hasCurlyBracketParameters() ? "}" : ""), "g");
-          var match, result = "", last = -1;
-          while (match = re.exec(this)) {
-            var parenIndex = match[0].indexOf("{");
-            var length = getJSONLength.call(this, match.index + parenIndex);
-            result = result + this.substring(last, match.index) + value;
-            last = match.index + length + parenIndex;
-          }
-          result = result + this.substring(last);
-          return result;
-        };
-        statement = replaceVariable.call(statement, variable.name(), (variable.value() || (variable.meta.placeholder && variable.meta.placeholder())));
-      });
+      var variables = self.variables().reduce(function (variables, variable) {
+        variables[variable.name()] = variable;
+        return variables;
+      }, {});
+      if (self.variables().length) {
+        var variablesString = self.variables().map(function(variable) { return variable.name(); }).join("|");
+        statement = statement.replace(RegExp("([^\\\\])?\\$" + (self.hasCurlyBracketParameters() ? "{(" : "(") + variablesString + ")(=[^}]*)?" + (self.hasCurlyBracketParameters() ? "}" : ""), "g"), function(match, p1, p2){
+          var variable = variables[p2];
+          return p1 + (variable && (variable.value() || (variable.meta.placeholder && variable.meta.placeholder())));
+        });
+      }
       return statement;
     });
 
