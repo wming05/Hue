@@ -583,7 +583,9 @@ var EditorViewModel = (function() {
     });
     if (snippet.variables) {
       snippet.variables.forEach(function (variable) {
-        variable.defaultValue = variable.defaultValue || '';
+        variable.meta = (typeof variable.defaultValue === "object" && variable.defaultValue) || {type: "text", placeholder: ""};
+        variable.value = variable.value || "";
+        delete variable.defaultValue;
       });
     }
     self.variables = ko.mapping.fromJS(typeof snippet.variables != "undefined" && snippet.variables != null ? snippet.variables : []);
@@ -651,24 +653,52 @@ var EditorViewModel = (function() {
 
       return params;
     };
+    function getJSONLength (index) {
+      //all bracket pairs
+      if (this.charAt(index) != "{") return 0;
+      var nOpenBracket = 1, start = index, i;
+      for (i = index + 1; i < this.length; i++) {
+        var currentChar = this.charAt(i);
+        if (currentChar === "{") nOpenBracket++;
+        else if (currentChar === "}") nOpenBracket--;
+        if (nOpenBracket <= 0) break;
+      }
+      return i - start + 1;
+    };
     self.variableNames = ko.computed(function () {
       var match, matches = {};
       if (self.type() == 'pig') {
         matches = self.getPigParameters();
       } else {
-        var re = /(?:^|\W)\${(\w*\=?[\w\s]*)}/g;
-        while (match = re.exec(self.statement_raw())) {
-          if (match[1].indexOf('=') > -1) {
-              var splittedName = match[1].split('=');
-              matches[splittedName[0]] = matches[splittedName[0]] || splittedName[1];
+        var re = /\${(\w*\=?[^}]*)/g;
+        var statement = self.statement_raw();
+        while (match = re.exec(statement)) {
+          var equalIndex = match[0].indexOf("=");
+          var splittedName = match[1].split("=");
+          if (equalIndex > -1) {
+            var variableValueIndex = match.index + equalIndex + 1;
+            var jsonLength = getJSONLength.call(statement, variableValueIndex);
+            if (jsonLength > 0) {
+              try {
+                matches[splittedName[0]] = JSON.parse(statement.substring(variableValueIndex, variableValueIndex + jsonLength));
+                matches[splittedName[0]].placeholder = matches[splittedName[0]].placeholder || "";
+                matches[splittedName[0]].type = matches[splittedName[0]].type || "text";
+              } catch (e) {
+                matches[splittedName[0]] = "";
+              }
+            } else {
+              matches[splittedName[0]] = splittedName[1];
             }
-            else {
-              matches[match[1]] = '';
-            }
+          }
+          else {
+            matches[match[1]] = splittedName[1];
+          }
         }
       }
       return Object.keys(matches).map(function (match) {
-        return { name: match, defaultValue: matches[match] };
+        var isMatchObject = typeof matches[match] === "object";
+        var meta = isMatchObject ? matches[match] : {type: "text", placeholder: matches[match]};
+        return {name: match, meta: meta};
       });
     });
     self.variableValues = {};
@@ -683,7 +713,7 @@ var EditorViewModel = (function() {
       }, self.variableValues);
       if (needsMore) {
         for (var i = 0, length = Math.abs(diffLengthVariables); i < length; i++) {
-          self.variables.push(ko.mapping.fromJS({ 'name': '', 'value': '', 'defaultValue': '' }));
+          self.variables.push(ko.mapping.fromJS({ "name": "", "value": "", "meta": {type: "text", placeholder: ""}}));
         }
       } else if (needsLess) {
         self.variables.splice(self.variables().length - diffLengthVariables, diffLengthVariables);
@@ -691,14 +721,26 @@ var EditorViewModel = (function() {
       newVal.forEach(function (item, index) {
         var variable = self.variables()[index];
         variable.name(item.name);
-        variable.defaultValue(item.defaultValue);
         variable.value(self.variableValues[item.name] || variable.value() || "");
+        variable.meta = ko.mapping.fromJS(item.meta, {}, variable.meta);
       });
     });
     self.statement = ko.computed(function () {
       var statement = self.isSqlDialect() ? (self.selectedStatement() ? self.selectedStatement() : (self.positionStatement() !== null ? self.positionStatement().statement : self.statement_raw())) : self.statement_raw();
       $.each(self.variables(), function (index, variable) {
-        statement = statement.replace(RegExp("([^\\\\])?\\$" + (self.hasCurlyBracketParameters() ? "{" : "") + variable.name() + "(=[^}]*)?" + (self.hasCurlyBracketParameters() ? "}" : ""), "g"), "$1" + (variable.value() || variable.defaultValue()));
+        function replaceVariable(name, value) {
+          var re = RegExp("\\$" + (self.hasCurlyBracketParameters() ? "{" : "") + name + "(=[^}]*)?" + (self.hasCurlyBracketParameters() ? "}" : ""), "g");
+          var match, result = "", last = -1;
+          while (match = re.exec(this)) {
+            var parenIndex = match[0].indexOf("{");
+            var length = getJSONLength.call(this, match.index + parenIndex);
+            result = result + this.substring(last, match.index) + value;
+            last = match.index + length + parenIndex;
+          }
+          result = result + this.substring(last);
+          return result;
+        };
+        statement = replaceVariable.call(statement, variable.name(), (variable.value() || (variable.meta.placeholder && variable.meta.placeholder())));
       });
       return statement;
     });
