@@ -2886,7 +2886,7 @@ var EditorViewModel = (function() {
       var notebook = self.selectedNotebook();
       if (notebook) {
         notebook.snippets().forEach(function (snippet) {
-          if (['hive', 'impala'].indexOf(snippet.type()) !== -1) {
+          if (options.sourceTypes.indexOf(snippet.type()) !== -1) {
             snippet.updateDatabases();
           }
         });
