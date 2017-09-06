@@ -699,7 +699,7 @@ var EditorViewModel = (function() {
         statement = replaceVariable.call(statement, variable.name(), (variable.value() || (variable.meta.placeholder && variable.meta.placeholder())));
       });
       return statement;
-    });
+    }); 
 
     self.result = new Result(snippet, snippet.result);
     if (! self.result.hasSomeResults()) {
