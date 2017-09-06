@@ -1675,6 +1675,14 @@ var EditorViewModel = (function() {
                   }
                 }
               }
+              if (notebook.isExecutingAll()) {
+                notebook.executingAllIndex(notebook.executingAllIndex() + 1);
+                if (notebook.executingAllIndex() < notebook.snippets().length) {
+                  notebook.snippets()[notebook.executingAllIndex()].execute();
+                } else {
+                  notebook.isExecutingAll(false);
+                }
+              }
               if (! self.result.handle().has_more_statements && vm.successUrl()) {
                 window.location.href = vm.successUrl(); // Not used anymore in Hue 4
               }
@@ -1683,8 +1691,10 @@ var EditorViewModel = (function() {
             }
           } else if (data.status === -3) {
             self.status('expired');
+            notebook.isExecutingAll(false);
           } else {
             self._ajaxError(data);
+            notebook.isExecutingAll(false);
           }
         }
       }).fail(function (xhr, textStatus, errorThrown) {
@@ -1692,6 +1702,7 @@ var EditorViewModel = (function() {
           $(document).trigger("error", xhr.responseText || textStatus);
         }
         self.status('failed');
+        notebook.isExecutingAll(false);
       });
     };
 
@@ -1713,6 +1724,7 @@ var EditorViewModel = (function() {
         self.statusForButtons('canceled');
         self.status('failed');
         self.isCanceling(false);
+        notebook.isExecutingAll(false);
       } else {
         self.statusForButtons('canceling');
         $.post("/notebook/api/cancel_statement", {
@@ -1722,6 +1734,7 @@ var EditorViewModel = (function() {
           self.statusForButtons('canceled');
           if (data.status == 0) {
             self.status('canceled');
+            notebook.isExecutingAll(false);
           } else {
             self._ajaxError(data);
           }
@@ -1731,6 +1744,7 @@ var EditorViewModel = (function() {
           }
           self.statusForButtons('canceled');
           self.status('failed');
+          notebook.isExecutingAll(false);
         }).always(function (){
           self.isCanceling(false);
         });
@@ -2036,6 +2050,17 @@ var EditorViewModel = (function() {
         }).length == self.snippets().length;
     });
 
+    self.isExecutingAll = ko.observable(typeof notebook.isExecutingAll != "undefined" && notebook.isExecutingAll != null ? notebook.isExecutingAll : false);
+    self.cancelExecutingAll = function() {
+      var index = self.executingAllIndex();
+      if (self.snippets()[index]) {
+        self.snippets()[index].cancel();
+      } else {
+        self.isExecutingAll(false);
+      }
+    };
+    self.executingAllIndex = ko.observable(typeof notebook.executingAllIndex != "undefined" && notebook.executingAllIndex != null ? notebook.executingAllIndex : 0);
+
     self.retryModalConfirm = null;
     self.retryModalCancel = null;
 
@@ -2326,24 +2351,14 @@ var EditorViewModel = (function() {
     };
 
     self.executeAll = function () {
-      if (self.snippets().length < 1) {
+      if (self.isExecutingAll()) {
         return;
       }
 
-      var index = 0;
-      self.snippets()[index].execute();
-      var clock = window.setInterval(next, 100, 'editor');
+      self.isExecutingAll(true);
+      self.executingAllIndex(0);
 
-      function next() {
-        if (self.snippets()[index].status() == 'available' || self.snippets()[index].status() == 'failed') {
-          index = index + 1;
-          if (self.snippets().length > index) {
-            self.snippets()[index].execute();
-          } else {
-            window.clearInterval(clock);
-          }
-        }
-      }
+      self.snippets()[self.executingAllIndex()].execute();
     };
 
     self.saveDefaultUserProperties = function (session) {
