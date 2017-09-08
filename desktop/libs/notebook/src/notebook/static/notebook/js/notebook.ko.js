@@ -677,8 +677,8 @@ var EditorViewModel = (function() {
       newVal.forEach(function (item, index) {
         var variable = self.variables()[index];
         variable.name(item.name);
-        variable.value(self.variableValues[item.name] || variable.value() || "");
         variable.meta = ko.mapping.fromJS(item.meta, {}, variable.meta);
+        variable.value(self.variableValues[item.name] || (!needsMore && variable.value()) || "");
       });
     });
     self.statement = ko.computed(function () {
@@ -699,7 +699,7 @@ var EditorViewModel = (function() {
         statement = replaceVariable.call(statement, variable.name(), (variable.value() || (variable.meta.placeholder && variable.meta.placeholder())));
       });
       return statement;
-    }); 
+    });
 
     self.result = new Result(snippet, snippet.result);
     if (! self.result.hasSomeResults()) {
