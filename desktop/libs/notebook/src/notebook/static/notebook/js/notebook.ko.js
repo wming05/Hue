@@ -2050,14 +2050,14 @@ var EditorViewModel = (function() {
         }).length == self.snippets().length;
     });
 
-    self.isExecutingAll = ko.observable(typeof notebook.isExecutingAll != "undefined" && notebook.isExecutingAll != null ? notebook.isExecutingAll : false);
+    self.isExecutingAll = ko.observable(!! notebook.isExecutingAll);
     self.cancelExecutingAll = function() {
       var index = self.executingAllIndex();
       if (self.isExecutingAll() && self.snippets()[index]) {
         self.snippets()[index].cancel();
       }
     };
-    self.executingAllIndex = ko.observable(typeof notebook.executingAllIndex != "undefined" && notebook.executingAllIndex != null ? notebook.executingAllIndex : 0);
+    self.executingAllIndex = ko.observable(notebook.executingAllIndex || 0);
 
     self.retryModalConfirm = null;
     self.retryModalCancel = null;
@@ -2287,10 +2287,11 @@ var EditorViewModel = (function() {
         if (data.status == 0) {
           self.id(data.id);
           self.isSaved(true);
+          var wasHistory = self.isHistory();
           self.isHistory(false);
           $(document).trigger("info", data.message);
           if (vm.editorMode()) {
-            if (data.save_as) {
+            if (! data.save_as) {
               var existingQuery = self.snippets()[0].queries().filter(function (item) {
                 return item.uuid() === data.uuid
               });
@@ -2307,6 +2308,9 @@ var EditorViewModel = (function() {
               self.saveScheduler();
               self.schedulerViewModel.coordinator.refreshParameters();
             }
+            if (wasHistory || data.save_as) {
+              self.loadScheduler();
+            }
 
             if (vm.isHue4()){
               vm.changeURL(vm.URLS.hue4 + '?editor=' + data.id);
@@ -2320,7 +2324,7 @@ var EditorViewModel = (function() {
               vm.changeURL('/notebook/notebook?notebook=' + data.id);
             }
           }
-          if (callback) {
+          if (typeof callback == "function") {
             callback();
           }
         } else {
@@ -2570,9 +2574,7 @@ var EditorViewModel = (function() {
                   self.schedulerViewModelIsLoaded(true);
 
                   if (_action == 'new') {
-                    self.coordinatorUuid(UUID());
-                    self.schedulerViewModel.coordinator.uuid(self.coordinatorUuid());
-                    self.schedulerViewModel.coordinator.properties.document(self.uuid());
+                    self.schedulerViewModel.coordinator.properties.document(self.uuid()); // Expected for triggering the display
                   }
                 }
               });
@@ -2600,7 +2602,10 @@ var EditorViewModel = (function() {
         self.schedulerViewModel.coordinator.isManaged(true);
         self.schedulerViewModel.coordinator.properties.document(self.uuid());
         self.schedulerViewModel.save(function(data) {
-          self.coordinatorUuid(data.uuid);
+          if (! self.coordinatorUuid()) {
+            self.coordinatorUuid(data.uuid);
+            self.save();
+          }
         });
       }
     };
