@@ -25,6 +25,7 @@ from liboozie.utils import format_time
 
 from jobbrowser.apis.base_api import Api, MockDjangoRequest
 from jobbrowser.apis.workflow_api import _manage_oozie_job, _filter_oozie_jobs
+from desktop.models import Document2
 
 
 LOG = logging.getLogger(__name__)
@@ -89,6 +90,10 @@ class ScheduleApi(Api):
     common['properties']['properties'] = ''
     common['properties']['bundle_id'] = coordinator.conf_dict.get('oozie.bundle.id')
     common['doc_url'] = common['properties'].get('doc_url')
+    print common['properties'].get('doc_url')
+    print '**********************************************'
+    coord_doc = Document2.objects.get(id=common['properties'].get('doc_id'))
+    common['doc_url'] = coord_doc.dependencies.all()[0].get_absolute_url()#(type='oozie-workflow2')[0].dependencies.filter(is_history=False) # --> in props
 
     return common
 

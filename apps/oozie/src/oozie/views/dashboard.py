@@ -476,6 +476,7 @@ def list_oozie_coordinator(request, job_id):
       'actions': actions,
       'total_actions': oozie_coordinator.total,
       'doc_url': coordinator.get_absolute_url() if coordinator else '',
+      'doc_id': coordinator.id if coordinator else '',
     }
     return JsonResponse(return_obj, encoder=JSONEncoderForHTML)
 

@@ -1355,6 +1355,7 @@ ${ commonheader("Job Browser", "jobbrowser", user, request) | n,unicode }
             ##  </label>
             ##</span>
             <div data-bind="template: { name: 'job-actions${ SUFFIX }' }" class="pull-right"></div>
+            <br>
           </form>
 
           <table id="schedulesTable" class="datatables table table-condensed status-border-container">
