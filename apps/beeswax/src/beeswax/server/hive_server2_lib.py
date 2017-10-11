@@ -573,6 +573,8 @@ class HiveServerClient:
 
 
   def open_session(self, user):
+    # Ideally Thread safe in the future without hurting performances.
+    # Or link query history to its session id.
 
     self.user = user
     kwargs = {
@@ -658,7 +660,9 @@ class HiveServerClient:
     res = fn(req)
 
     # Not supported currently in HS2 and Impala: TStatusCode.INVALID_HANDLE_STATUS
-    if res.status.statusCode == TStatusCode.ERROR_STATUS and \
+    # Only on operations that would not fail in a new session. This avoids an old CloseStatement to trigger a new session.
+    if isinstance(req, (TGetTablesReq, TGetColumnsReq, TExecuteStatementReq, TGetSchemasReq)) and \
+        res.status.statusCode == TStatusCode.ERROR_STATUS and \
         re.search('Invalid SessionHandle|Invalid session|Client session expired', res.status.errorMessage or '', re.I):
       LOG.info('Retrying with a new session because for %s of %s' % (self.user, res))
       session.status_code = TStatusCode.INVALID_HANDLE_STATUS
