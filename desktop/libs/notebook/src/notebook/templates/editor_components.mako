@@ -543,7 +543,7 @@ ${ sqlSyntaxDropdown.sqlSyntaxDropdown() }
   <form class="form-horizontal session-config">
     <fieldset>
       <!-- ko ifnot: sessions().length -->
-      <p>${ _('There are currently no active sessions, please reload the page.') }</p>
+      <p>${ _('There are currently no active sessions.') }</p>
       <!-- /ko -->
       <!-- ko foreach: sessions -->
       <h4 style="clear:left; display: inline-block">

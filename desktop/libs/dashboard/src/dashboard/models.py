@@ -591,7 +591,8 @@ def augment_solr_response(response, collection, query):
           actual_dimension = sum([_f['aggregate']['function'] == 'count' for _f in collection_facet['properties']['facets']])
 
           counts = filter(lambda a: len(a['fq_fields']) == actual_dimension, counts)
-
+        print cols
+        print rows
         num_bucket = response['facets'][name]['numBuckets'] if 'numBuckets' in response['facets'][name] else len(response['facets'][name])
         facet = {
           'id': collection_facet['id'],
