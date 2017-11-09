@@ -5904,6 +5904,32 @@
     }
   };
 
+  ko.bindingHandlers.readonlyJson = {
+    init: function (element, valueAccessor, allBindingsAccessor) {
+      $(element).css({
+        'min-height': '250px'
+      });
+      var editor = ace.edit(element);
+      editor.setOptions({
+        readOnly: true,
+        maxLines: Infinity
+      });
+      editor.setTheme($.totalStorage("hue.ace.theme") || "ace/theme/hue");
+      editor.getSession().setMode("ace/mode/json");
+      $(element).data('aceEditor', editor);
+    },
+    update: function (element, valueAccessor, allBindingsAccessor) {
+      var value = ko.unwrap(valueAccessor());
+      var options = ko.unwrap(allBindingsAccessor());
+      if (typeof value !== 'undefined' && value !== '') { // allows highlighting static code
+        if (options.path) {
+          value = value[options.path];
+        }
+        $(element).data('aceEditor').setValue(value, -1)
+      }
+    }
+  };
+
   ko.bindingHandlers.highlight = {
     init: function (element) {
       $(element).addClass('ace-highlight');

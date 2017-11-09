@@ -324,10 +324,10 @@ ${ assist.assistPanel() }
     <div class="tab-pane" id="index-config">
       <!-- ko hueSpinner: { spin: $root.index().loadingConfig, center: true, size: 'xlarge' } --><!-- /ko -->
 
-      <!-- ko if: config() && config().length > 0 -->
-        <span data-bind="text: ko.mapping.toJSON(config)"></span>
+      <!-- ko if: config() -->
+        <div data-bind="readonlyJson: config"></div>
       <!-- /ko -->
-      <!-- ko if: !config() || config().length === 0 -->
+      <!-- ko if: !config() -->
       <div class="margin-top-10 margin-left-10">${ _('The config could not be retrieved.')}</div>
       <!-- /ko -->
     </div>
