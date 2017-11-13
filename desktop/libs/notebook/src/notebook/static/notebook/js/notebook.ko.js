@@ -262,7 +262,7 @@ var EditorViewModel = (function() {
     self.name = ko.observable(typeof snippet.name != "undefined" && snippet.name != null ? snippet.name : '');
     self.type = ko.observable(typeof snippet.type != "undefined" && snippet.type != null ? snippet.type : 'hive');
     self.type.subscribe(function(newVal) {
-      self.status('ready');
+      self.status('ready');console.log(newVal);
     });
 
     self.isBatchable = ko.computed(function() {
@@ -523,6 +523,7 @@ var EditorViewModel = (function() {
     self.aceSize = ko.observable(typeof snippet.aceSize != "undefined" && snippet.aceSize != null ? snippet.aceSize : 100);
     // self.statement_raw.extend({ rateLimit: 150 }); // Should prevent lag from typing but currently send the old query when using the key shortcut
     self.status = ko.observable(typeof snippet.status != "undefined" && snippet.status != null ? snippet.status : 'loading');
+    console.log('status ' + self.status());
     self.statusForButtons = ko.observable('executed');
 
     self.properties = ko.observable(ko.mapping.fromJS(typeof snippet.properties != "undefined" && snippet.properties != null ? snippet.properties : getDefaultSnippetProperties(self.type())));
@@ -1665,7 +1666,7 @@ var EditorViewModel = (function() {
 
           if (data.status === 0) {
             self.status(data.query_status.status);
-
+            console.log(data.query_status.status);
             if (self.status() == 'running' || self.status() == 'starting' || self.status() == 'waiting') {
               var delay = self.result.executionTime() > 45000 ? 5000 : 1000; // 5s if more than 45s
               if (! notebook.unloaded()) {
@@ -2135,7 +2136,7 @@ var EditorViewModel = (function() {
       var snippets = self.getSnippets(session.type());
 
       $.each(snippets, function(index, snippet) {
-        snippet.status('loading');
+        snippet.status('loading'); console.log('loading');
       });
 
       var sessionJson = ko.mapping.toJSON(session);
@@ -2143,7 +2144,7 @@ var EditorViewModel = (function() {
       self.closeSession (session, true, function() {
         self.createSession(session, function () {
           $.each(snippets, function(index, snippet) {
-            snippet.status('ready');
+            snippet.status('ready');console.log('ready');
           });
           session.restarting(false);
           if (callback) {
@@ -2176,7 +2177,7 @@ var EditorViewModel = (function() {
 
       if (self.getSession(_snippet.type()) == null && typeof skipSession == "undefined") {
         window.setTimeout(function() {
-          _snippet.status('loading');
+          _snippet.status('loading'); console.log('set to loading'); // called here
           self.createSession(new Session(vm, {'type': _snippet.type()}));
         }, 200);
       }
@@ -2193,7 +2194,7 @@ var EditorViewModel = (function() {
       }
 
       $.each(self.getSnippets(session.type()), function(index, snippet) {
-        snippet.status('loading');
+        snippet.status('loading'); console.log('set to loading 2'); // called here
       });
 
       var fail = function (message) {
