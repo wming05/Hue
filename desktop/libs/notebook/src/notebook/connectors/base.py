@@ -221,6 +221,7 @@ def get_api(request, snippet):
   from notebook.connectors.spark_shell import SparkApi
   from notebook.connectors.spark_batch import SparkBatchApi
   from notebook.connectors.text import TextApi
+  from notebook.connectors.sqlalchemyapi import SqlAlchemyApi
 
   if snippet.get('wasBatchExecuted'):
     return OozieApi(user=request.user, request=request)
@@ -269,6 +270,8 @@ def get_api(request, snippet):
     return DataEngApi(user=request.user, request=request, cluster_name=cluster.get_interface())
   elif interface == 'jdbc' or interface == 'teradata':
     return JdbcApi(request.user, interpreter=interpreter)
+  elif interface == 'sqlalchemy':
+    return SqlAlchemyApi(request.user, interpreter=interpreter)
   elif interface == 'solr':
     return SolrApi(request.user, interpreter=interpreter)
   elif interface == 'hbase':
