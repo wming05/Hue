@@ -2,7 +2,7 @@
 
 extensions = ['sphinx.ext.autodoc']
 
-master_doc = "index"
+main_doc = "index"
 
 project = "pytidylib"
 copyright = "2009 Jason Stitt"
@@ -15,7 +15,7 @@ latex_use_modindex = False
 
 latex_documents = [
     (
-    master_doc,
+    main_doc,
     'pytidylib.tex',
     'PyTidyLib documentation',
     'Jason Stitt',

@@ -132,8 +132,8 @@ typedef ... SSL_METHOD;
 typedef ... SSL_CTX;
 
 typedef struct {
-    int master_key_length;
-    unsigned char master_key[...];
+    int main_key_length;
+    unsigned char main_key[...];
     unsigned int session_id_length;
     unsigned char session_id[...];
     unsigned int sid_ctx_length;
@@ -431,7 +431,7 @@ const SSL_METHOD *SSL_CTX_get_ssl_method(SSL_CTX *);
 int SSL_SESSION_set1_id_context(SSL_SESSION *, const unsigned char *,
                                 unsigned int);
 /* Added in 1.1.0 for the great opaquing of structs */
-size_t SSL_SESSION_get_master_key(const SSL_SESSION *, unsigned char *,
+size_t SSL_SESSION_get_main_key(const SSL_SESSION *, unsigned char *,
                                   size_t);
 size_t SSL_get_client_random(const SSL *, unsigned char *, size_t);
 size_t SSL_get_server_random(const SSL *, unsigned char *, size_t);
@@ -493,18 +493,18 @@ size_t SSL_get_server_random(const SSL *ssl, unsigned char *out, size_t outlen)
 }
 /* Added in 1.1.0 as well */
 /* from ssl/ssl_lib.c */
-size_t SSL_SESSION_get_master_key(const SSL_SESSION *session,
+size_t SSL_SESSION_get_main_key(const SSL_SESSION *session,
                                unsigned char *out, size_t outlen)
 {
-    if (session->master_key_length < 0) {
+    if (session->main_key_length < 0) {
         /* Should never happen */
         return 0;
     }
     if (outlen == 0)
-        return session->master_key_length;
-    if (outlen > (size_t)session->master_key_length)
-        outlen = session->master_key_length;
-    memcpy(out, session->master_key, outlen);
+        return session->main_key_length;
+    if (outlen > (size_t)session->main_key_length)
+        outlen = session->main_key_length;
+    memcpy(out, session->main_key, outlen);
     return outlen;
 }
 #endif

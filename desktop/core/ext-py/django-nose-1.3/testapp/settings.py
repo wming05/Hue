@@ -1,6 +1,6 @@
 DATABASES = {
     'default': {
-        'NAME': 'django_master',
+        'NAME': 'django_main',
         'ENGINE': 'django.db.backends.sqlite3',
     }
 }

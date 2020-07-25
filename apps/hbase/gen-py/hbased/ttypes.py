@@ -898,7 +898,7 @@ class TScan:
 class IOError(TException):
   """
   An IOError exception signals that an error occurred communicating
-  to the Hbase master or an Hbase region server.  Also used to return
+  to the Hbase main or an Hbase region server.  Also used to return
   more general Hbase error conditions.
 
   Attributes:

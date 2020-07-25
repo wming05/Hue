@@ -68,7 +68,7 @@ class Iface:
 
   def disableTable(self, tableName):
     """
-    Disables a table (takes it off-line) If it is being served, the master
+    Disables a table (takes it off-line) If it is being served, the main
     will tell the servers to stop serving it.
 
     Parameters:
@@ -694,7 +694,7 @@ class Client(Iface):
   @do_as
   def disableTable(self, tableName):
     """
-    Disables a table (takes it off-line) If it is being served, the master
+    Disables a table (takes it off-line) If it is being served, the main
     will tell the servers to stop serving it.
 
     Parameters:

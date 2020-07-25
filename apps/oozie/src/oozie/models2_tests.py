@@ -990,7 +990,7 @@ class TestExternalWorkflowGraph(object):
             <spark xmlns="uri:oozie:spark-action:0.2">
                 <job-tracker>${jobTracker}</job-tracker>
                 <name-node>${nameNode}</name-node>
-                <master>yarn</master>
+                <main>yarn</main>
                 <mode>client</mode>
                 <name>MySpark</name>
                 <jar>/user/admin/test.jar</jar>
@@ -1003,7 +1003,7 @@ class TestExternalWorkflowGraph(object):
             <spark xmlns="uri:oozie:spark-action:0.2">
                 <job-tracker>${jobTracker}</job-tracker>
                 <name-node>${nameNode}</name-node>
-                <master>yarn</master>
+                <main>yarn</main>
                 <mode>client</mode>
                 <name>MySpark</name>
                 <jar>/user/admin/test.jar</jar>
@@ -1137,7 +1137,7 @@ class TestExternalWorkflowGraph(object):
         <spark xmlns="uri:oozie:spark-action:0.2">
             <job-tracker>${jobTracker}</job-tracker>
             <name-node>${nameNode}</name-node>
-            <master>local[*]</master>
+            <main>local[*]</main>
             <mode>client</mode>
             <name>MySpark</name>
             <jar>wordcount.py</jar>
